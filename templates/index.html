@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Pricing Strategy System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+<div class="min-h-screen flex items-center justify-center">
+    <div class="bg-white shadow-lg rounded-lg p-8 max-w-md w-full">
+        <h1 class="text-3xl font-bold text-center text-green-600 mb-6">🔥 AI Pricing Strategy 🔥</h1>
+
+        <!-- Category Dropdown -->
+        <div class="mb-4">
+            <label for="category" class="block text-gray-700 font-medium mb-2">Select Category:</label>
+            <select id="category" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400" onchange="updateBrands()">
+                <option value="">-- Select Category --</option>
+                {% for category in categories %}
+                    <option value="{{ category }}">{{ category }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Brand Dropdown -->
+        <div class="mb-4">
+            <label for="brand" class="block text-gray-700 font-medium mb-2">Select Brand:</label>
+            <select id="brand" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400" onchange="updateProducts()">
+                <option value="">-- Select Brand --</option>
+                {% for brand in brands %}
+                    <option value="{{ brand }}">{{ brand }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Product Name Dropdown -->
+        <div class="mb-4">
+            <label for="product_name" class="block text-gray-700 font-medium mb-2">Select Product:</label>
+            <select id="product_name" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400">
+                <option value="">-- Select Product --</option>
+            </select>
+        </div>
+
+        <!-- Predict Button -->
+        <button onclick="predictPrice()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg shadow-md transition duration-200">
+            🚀 Predict Price
+        </button>
+
+        <!-- Result Section -->
+        <div id="result" class="mt-6 p-4 bg-gray-50 border border-gray-300 rounded-lg hidden">
+            <h2 class="text-xl font-bold mb-2 text-green-600">🔍 Prediction Result:</h2>
+            <p id="predicted_price" class="text-gray-800"></p>
+            <p id="discount" class="text-gray-800"></p>
+            <p id="final_price" class="text-gray-800 font-semibold"></p>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Code -->
+<script>
+    // ✅ Update brands when category is selected
+    async function updateBrands() {
+        const category = document.getElementById('category').value;
+        if (!category) return;
+
+        const response = await fetch('/get-brands', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category })
+        });
+
+        const data = await response.json();
+
+        // Populate brands
+        const brandSelect = document.getElementById('brand');
+        brandSelect.innerHTML = `<option value="">-- Select Brand --</option>`;
+        data.brands.forEach(brand => {
+            brandSelect.innerHTML += `<option value="${brand}">${brand}</option>`;
+        });
+
+        // Reset product dropdown
+        document.getElementById('product_name').innerHTML = `<option value="">-- Select Product --</option>`;
+    }
+
+    // ✅ Update products when brand is selected
+    async function updateProducts() {
+        const brand = document.getElementById('brand').value;
+        if (!brand) return;
+
+        const response = await fetch('/get-products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ brand })
+        });
+
+        const data = await response.json();
+
+        // Populate product names
+        const productSelect = document.getElementById('product_name');
+        productSelect.innerHTML = `<option value="">-- Select Product --</option>`;
+        data.products.forEach(product => {
+            productSelect.innerHTML += `<option value="${product}">${product}</option>`;
+        });
+    }
+
+    // ✅ Predict price based on selected inputs
+    async function predictPrice() {
+        const category = document.getElementById('category').value;
+        const brand = document.getElementById('brand').value;
+        const product_name = document.getElementById('product_name').value;
+
+        if (!category || !brand || !product_name) {
+            alert("Please select all fields");
+            return;
+        }
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `category=${encodeURIComponent(category)}&brand=${encodeURIComponent(brand)}&product_name=${encodeURIComponent(product_name)}`
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            // Display result
+            document.getElementById('result').classList.remove('hidden');
+            document.getElementById('predicted_price').innerHTML = `💰 Predicted Price: ₹${data.predicted_price}`;
+            document.getElementById('discount').innerHTML = `🔻 Recommended Discount: ${data.discount}%`;
+            document.getElementById('final_price').innerHTML = `📉 Final Price After Discount: ₹${data.final_price}`;
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    }
+</script>
+</body>
+</html>
